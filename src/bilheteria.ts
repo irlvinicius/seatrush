@@ -4,6 +4,15 @@ import { calcularTotal, montarIngressos } from "./preco.ts";
 import { direitoAMeia } from "./regras.ts";
 import type { Comprovante, ConfigBilheteria, EventoInfo, Pedido } from "./tipos.ts";
 
+// Espera a promessa, mas desiste depois de `ms`: o Promise.race devolve quem terminar primeiro.
+function comTempoLimite<T>(promessa: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limite = new Promise<never>((_, rejeitar) => {
+    timer = setTimeout(() => rejeitar(new Error("tempo esgotado")), ms);
+  });
+  // O finally desliga o relógio quando a cobrança termina antes.
+  return Promise.race([promessa, limite]).finally(() => clearTimeout(timer));
+}
 
 export class Bilheteria {
   #eventos: Evento[];
@@ -40,9 +49,9 @@ export class Bilheteria {
     const total = calcularTotal(ingressos);
 
     try {
-      await this.#pagar(total);
+      await comTempoLimite(this.#pagar(total), this.#limitePagamentoMs);
     } catch {
-      // Pagamento recusado: devolve as poltronas para a venda antes de avisar o cliente.
+      // Pagamento recusado ou operadora travada (tempo esgotado): devolve as poltronas para a venda antes de avisar o cliente.
       evento.liberar(poltronas);
       throw new PagamentoErro("o pagamento não foi aprovado");
     }
