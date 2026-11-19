@@ -40,7 +40,7 @@ curl -X POST localhost:3000/reservas -H 'Content-Type: application/json' \
 
 ### Integrantes
 
-| Nome | RGM | Usuário do GitHub | Parte principal |
+| Nome | RGM | Usuário do GitHub |
 | :--- | :--- | :--- | :--- |
 | Pedro Nícollas Pereira Leon Lopes | 34367551 | [@PLeonLopes](https://github.com/PLeonLopes) |
 | Vinícius Vieira de Lima | 33754748 | [@irlvinicius](https://github.com/irlvinicius) |
