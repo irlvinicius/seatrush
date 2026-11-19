@@ -40,12 +40,10 @@ curl -X POST localhost:3000/reservas -H 'Content-Type: application/json' \
 
 ### Integrantes
 
-| Nome | Usuário do GitHub | 
-| :--- | :--- |
-|Pedro Lopes| [@pleonLopes](https://github.com/pleonLopes)|
-|Vinícius Vieira| [@irlvinicius](https://github.com/irlvinicius)
-
-
+| Nome | RGM | Usuário do GitHub | Parte principal |
+| :--- | :--- | :--- | :--- |
+| Pedro Nícollas Pereira Leon Lopes | 34367551 | [@PLeonLopes](https://github.com/PLeonLopes) |
+| Vinícius Vieira de Lima | 33754748 | [@irlvinicius](https://github.com/irlvinicius) |
 
 ### Decisões
 
@@ -58,9 +56,21 @@ curl -X POST localhost:3000/reservas -H 'Content-Type: application/json' \
    é o da cobrança (`await comTempoLimite(this.#pagar(total), ...)`): se a marcação viesse depois dele, os
    quatro pedidos da mesma poltrona passariam pela conferência enquanto esperam a operadora, todos seriam
    cobrados e só depois um deles falharia. Se o pagamento é recusado ou passa do tempo limite, as poltronas
-   voltam para a venda com `evento.liberar(poltronas)`. Limitação: quando o tempo esgota, a cobrança
-   atrasada ainda pode ser aprovada pela operadora; num sistema real isso pediria um estorno.
+   voltam para a venda com `evento.liberar(poltronas)`. 
+   Limitação: quando o tempo esgota, a cobrança atrasada ainda pode ser aprovada pela operadora; num sistema real isso pediria um estorno.
+
 2. **OO.** O que o `Evento` esconde e por quê? Por que o `reservar` é tudo ou nada? Por que os erros são uma hierarquia de classes?
+
+   **Resposta:** o `Evento` esconde a lista de poltronas vendidas num campo privado `#vendidas`. De fora,
+   dá para ler quantas restam (`evento.disponivel`, que é só um `get`), mas não dá para marcar ou desmarcar
+   poltronas sem passar por `reservar` e `liberar`, que validam tudo. Assim ninguém consegue, por engano,
+   vender uma poltrona inexistente ou "desvender" uma poltrona. O `reservar` é tudo ou nada porque um
+   pedido de família é uma compra só: se uma das poltronas falha, nenhuma é marcada, senão sobrariam
+   poltronas presas sem ninguém pagar por elas. Para isso ele confere todas antes de marcar qualquer uma.
+   Os erros são uma hierarquia porque todos são "erros de negócio" com um `status` HTTP: cada classe filha
+   já sabe o seu (400, 404, 409, 502), e o `servidor.ts` só precisa de um `instanceof ErroDeNegocio` para
+   responder com `erro.status`, sem um `if` para cada tipo de erro.
+
 3. **Funcional.** O que ganhamos com `preco.ts` puro? Como vocês testariam ele sem subir o servidor?
 
    **Resposta:** as funções de `preco.ts` só dependem do que recebem e não alteram nada fora delas: a mesma
@@ -70,10 +80,28 @@ curl -X POST localhost:3000/reservas -H 'Content-Type: application/json' \
    resultados, sem servidor, sem rede e sem operadora: `aplicarTaxa(0.1)(100)` tem que dar `110`, e
    `montarIngressos` pode receber outra regra de meia (por exemplo, `(p) => p.nome === "Beto"`) para
    conferir que ela usa a função recebida.
+
 4. **Se fosse em outro paradigma.** Escolham uma das partes e expliquem como ficaria em outro
    paradigma, e se ficaria melhor ou pior.
+
+   **Resposta:** o `preco.ts` em orientação a objetos poderia ser uma classe `CalculadoraDePreco`, por exemplo, 
+   com o preço base e a taxa como atributos e métodos como `valorDoIngresso(tipo)` e `total(ingressos)`.
+   Funcionaria, mas ficaria pior: o estado guardado no objeto poderia mudar entre uma chamada e outra
+   (alguém altera a taxa no meio da venda), e para testar seria preciso montar o objeto antes. 
+   Já o `Evento` em estilo funcional, com uma lista imutável recriada a cada reserva, também ficaria pior aqui: a bilheteria
+   precisa de um único dono das poltronas que todos os pedidos enxergam, e é exatamente isso que um objeto
+   com estado privado oferece.
+
 5. **Concorrente × paralelo.** O Node roda o JavaScript numa linha só: os pedidos de vocês são
    concorrentes, não paralelos. O que mudaria se a venda rodasse em vários núcleos ao mesmo tempo?
+
+   **Resposta:** hoje a conferência e a marcação das poltronas (`evento.reservar`) nunca são interrompidas,
+   porque o Node só troca de pedido num `await`, e ali não há nenhum. Com vários núcleos rodando ao mesmo
+   tempo, dois pedidos poderiam conferir a mesma poltrona no mesmo instante, ver que está livre e os dois
+   marcarem: a venda dupla voltaria. Seria preciso uma trava (mutex) em volta da conferência + marcação, ou
+   deixar o controle para o banco de dados com uma transação ou uma restrição de unicidade na poltrona.
+   Além disso, cada núcleo teria a sua memória: a lista de poltronas precisaria ficar num lugar
+   compartilhado (um banco), e não num campo do objeto.
 
 ### Resultados do bench
 
