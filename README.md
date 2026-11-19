@@ -36,7 +36,7 @@ curl -X POST localhost:3000/reservas -H 'Content-Type: application/json' \
 
 ## Preencham (avaliado no vídeo)
 
-**Link do vídeo:** 
+**Link do vídeo:** https://youtu.be/FtdKyEUY2DU
 
 ### Integrantes
 
@@ -110,9 +110,6 @@ curl -X POST localhost:3000/reservas -H 'Content-Type: application/json' \
 | Padrão (`main.ts`), 1ª rodada | 200 | 193 | 91 | 100 | 9 |
 | Padrão (`main.ts`), 2ª rodada (servidor reiniciado) | 200 | 198 | 92 | 100 | 8 |
 | Bench de novo sem reiniciar o servidor | 200 | 209 | 7 | 192 | 1 |
-
-O bench ocupa as poltronas do evento 1: para rodar de novo, parem o `npm start` (Ctrl+C) e subam outra
-vez.
 
 O que os números mostram: os 200 pedidos (dois por poltrona) terminam em cerca de 200 ms, mesmo com cada
 cobrança levando 80 ms. Se fossem atendidos um de cada vez, seriam pelo menos 8 segundos (100 cobranças × 80 ms):
