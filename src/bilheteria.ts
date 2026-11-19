@@ -1,8 +1,9 @@
-import { DadosInvalidosErro, Evento, NaoEncontradoErro } from "./dominio.ts";
+import { DadosInvalidosErro, Evento, NaoEncontradoErro, PagamentoErro } from "./dominio.ts";
 import type { Pagamento } from "./pagamento.ts";
 import { calcularTotal, montarIngressos } from "./preco.ts";
 import { direitoAMeia } from "./regras.ts";
 import type { Comprovante, ConfigBilheteria, EventoInfo, Pedido } from "./tipos.ts";
+
 
 export class Bilheteria {
   #eventos: Evento[];
@@ -38,8 +39,13 @@ export class Bilheteria {
     const ingressos = montarIngressos(evento.preco, pedido.ingressos, direitoAMeia);
     const total = calcularTotal(ingressos);
 
-    // 4 -> Cobrança async na api da operadora
-    await this.#pagar(total);
+    try {
+      await this.#pagar(total);
+    } catch {
+      // Pagamento recusado: devolve as poltronas para a venda antes de avisar o cliente.
+      evento.liberar(poltronas);
+      throw new PagamentoErro("o pagamento não foi aprovado");
+    }
 
     // 5 -> Comprovação com ID novo
     return { reservaId: this.#proximoReservaId++, eventoId: evento.id, ingressos, total };
