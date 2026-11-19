@@ -48,6 +48,7 @@ export class Bilheteria {
     const ingressos = montarIngressos(evento.preco, pedido.ingressos, direitoAMeia);
     const total = calcularTotal(ingressos);
 
+    // 4 -> Cobrança com tempo limite/máximo: enquanto um pedido espera aqui, outros são atendidos
     try {
       await comTempoLimite(this.#pagar(total), this.#limitePagamentoMs);
     } catch {
